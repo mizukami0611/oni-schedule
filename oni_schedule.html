@@ -348,31 +348,29 @@ thead th {
   table { width: 100vw !important; }
 
   /* CLIENT列固定、曜日列を均等分配 */
-  .th-lbl { width: 40px !important; font-size: 5px; letter-spacing: 0; }
+  .th-lbl { width: 40px !important; font-size: 5px !important; letter-spacing: 0; }
+  thead th { font-size: 7px !important; height: 20px !important; letter-spacing: 0 !important; }
   .th-sun, .th-mon, .th-tue, .th-wed, .th-thu, .th-fri, .th-sat {
     width: calc((100vw - 40px) / 7) !important;
-    font-size: 7px;
-    letter-spacing: 0;
-    height: 20px;
   }
 
   /* 日付行 */
-  .row-date td { height: 17px; }
-  .date-num { width: 13px; height: 13px; font-size: 7px; }
-  .holiday-name { font-size: 5px; }
+  .row-date td { height: 17px !important; }
+  .date-num { width: 13px !important; height: 13px !important; font-size: 7px !important; }
+  .holiday-name { font-size: 5px !important; }
 
   /* 個人メモ行 */
-  .row-personal td { height: 10px; }
-  .personal-cell { font-size: 5px; }
+  .row-personal td { height: 10px !important; }
+  .personal-cell { font-size: 5px !important; }
 
   /* クライアント行 */
-  .row-client td { height: 14px; }
-  .row-client .cell-lbl { font-size: 5px; padding: 0 1px; letter-spacing: 0; }
+  .row-client td { height: 14px !important; }
+  .row-client .cell-lbl { font-size: 5px !important; padding: 0 1px !important; letter-spacing: 0 !important; }
 
-  /* データセル */
-  .dcell { font-size: 5.5px; }
-  .dcell.is-ms { font-size: 5px; }
-  .dcell.is-done { font-size: 5px; }
+  /* データセル（インラインstyleより優先するため!important必須） */
+  .dcell { font-size: 5.5px !important; }
+  .dcell.is-ms { font-size: 5px !important; }
+  .dcell.is-done { font-size: 5px !important; }
 
   /* モーダル：上寄せ＋スクロール対応 */
   .mbg { align-items: flex-start; padding: 16px 12px; overflow-y: auto; }
