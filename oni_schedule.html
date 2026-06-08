@@ -378,8 +378,11 @@ thead th {
   .dcell.is-ms { font-size: 6.5px; }
   .dcell.is-done { font-size: 6.5px; }
 
-  /* モーダルをほぼ全幅に */
-  .mdl { min-width: 0; width: calc(100vw - 24px); }
+  /* モーダル：上寄せ＋スクロール対応 */
+  .mbg { align-items: flex-start; padding: 16px 12px; overflow-y: auto; }
+  .mdl { min-width: 0; width: 100%; padding: 16px; }
+  /* ボタングリッドを2列に（3列だと見切れる） */
+  .btn-grid { grid-template-columns: 1fr 1fr; }
 
   /* スマホ操作ガイドバー */
   .mobile-guide {
@@ -978,6 +981,7 @@ function startInlineEdit(td) {
   function commit() {
     if (committed) return;
     committed = true;
+    clearSel(); // 選択ハイライトを解除（空入力でも色が残らないように）
     const val = input.value.trim();
     // 変更がなければ履歴に積まずそのまま再描画だけ
     if (val === prevLabel) { draw(td, S[td.dataset.key], cl); return; }
