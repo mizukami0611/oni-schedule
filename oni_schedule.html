@@ -340,11 +340,18 @@ thead th {
   .toolbar h1 { font-size: 9px; }
   .toolbar button { padding: 3px 7px; font-size: 8px; }
 
-  /* ラッパー：横スクロール可 */
-  .wrap { padding: 0 0 60px; overflow-x: auto; }
+  /* ラッパー：横スクロール不要 */
+  .wrap { padding: 0 0 60px; overflow-x: hidden; }
 
-  /* テーブル全体を50%縮小（列幅・フォント・間隔すべて均等に半分） */
-  #tbl-container { zoom: 0.5; }
+  /* zoom:0.5 + width:200vw → 視覚上100vwに収まり、かつ全体が半分サイズ */
+  #tbl-container { zoom: 0.5; width: 200vw; }
+  table { width: 200vw !important; }
+
+  /* CLIENT列固定、曜日列を均等分配（200vw基準で計算） */
+  .th-lbl { width: 90px !important; }
+  .th-sun, .th-mon, .th-tue, .th-wed, .th-thu, .th-fri, .th-sat {
+    width: calc((200vw - 90px) / 7) !important;
+  }
 
   /* モーダル：上寄せ＋スクロール対応 */
   .mbg { align-items: flex-start; padding: 16px 12px; overflow-y: auto; }
