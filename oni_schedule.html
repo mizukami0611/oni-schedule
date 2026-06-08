@@ -800,8 +800,10 @@ function build() {
       const tr = tbody.insertRow();
       tr.className = 'row-client' + (ci===visClients.length-1 ? ' week-end' : '');
 
+      const clIdx = CLIENTS.indexOf(cl); // visClientsではなくCLIENTS全体のインデックスを使う
+
       const lbl = mkTd(tr,'cell-lbl');
-      lbl.dataset.ci = ci;
+      lbl.dataset.ci = clIdx;
       lbl.style.background = cl.light;
       lbl.style.color = cl.dark;
       lbl.textContent = cl.name;
@@ -813,7 +815,7 @@ function build() {
         if(dow===0) td.classList.add('col-sun-tint');
         const key = cl.name+':'+fmt(d);
         td.dataset.key = key;
-        td.dataset.ci  = ci;
+        td.dataset.ci  = clIdx;
         td.dataset.date = fmt(d);
         draw(td, S[key], cl);
         td.addEventListener('mousedown',   e => onCellDown(e, td));
