@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>鬼スケジュール 2026</title>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Helvetica Neue', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+  background: #f0f0f0;
+  font-size: 10px;
+  color: #222;
+}
+
+/* ─── ツールバー ─── */
+.toolbar {
+  background: #1a1a1a;
+  color: white;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.toolbar h1 { font-size: 13px; font-weight: 900; letter-spacing: 2px; }
+.toolbar button {
+  padding: 4px 12px;
+  background: #333;
+  color: white;
+  border: 1px solid #555;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 10px;
+}
+.toolbar button:hover { background: #444; }
+.toolbar .hint     { color: #888; font-size: 9px; }
+.toolbar .hint-ms  { color: #f9a825; font-size: 9px; font-weight: 700; letter-spacing: 0.3px; }
+.toolbar .last-upd { color: #fff; font-size: 11px; font-weight: 700; margin-left: 20px; letter-spacing: 0.3px; }
+
+/* ─── テーブルラッパー ─── */
+.wrap {
+  padding: 10px 12px 60px;
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+/* ─── ヘッダー（曜日） ─── */
+thead th {
+  height: 32px;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  border: 1px solid rgba(0,0,0,0.18);
+  white-space: nowrap;
+  text-align: center;
+}
+.th-lbl { width: 90px; background: #111; color: #444; font-size: 8px; position: sticky; left: 0; z-index: 30; }
+.th-sun { width: 130px; background: #e53935; color: #fff; }
+.th-mon { width: 130px; background: #1e88e5; color: #fff; }
+.th-tue { width: 130px; background: #fb8c00; color: #fff; }
+.th-wed { width: 130px; background: #00acc1; color: #fff; }
+.th-thu { width: 130px; background: #43a047; color: #fff; }
+.th-fri { width: 130px; background: #fdd835; color: #333; }
+.th-sat { width: 130px; background: #546e7a; color: #fff; }
+
+/* ─── 日付行 ─── */
+.row-date td {
+  height: 26px;
+  border: 1px solid #ccc;
+  vertical-align: middle;
+  text-align: right;
+  padding: 0 4px 0 0;
+  background: #fff;
+}
+.row-date .cell-lbl {
+  background: #e8e8e8;
+  color: #999;
+  font-size: 8px;
+  text-align: center;
+  padding: 0;
+  position: sticky;
+  left: 0;
+  z-index: 20;
+  border-right: 2px solid #bbb;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.row-date .col-sun { background: #fff8f8; }
+.row-date .col-sat { background: #f5f8ff; }
+
+.date-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: bold;
+}
+.date-num.dn-sun     { background: #e53935; color: #fff; }
+.date-num.dn-sat     { background: #1565c0; color: #fff; }
+.date-num.dn-holiday { background: #e53935; color: #fff; }
+.date-num.dn-today   { background: rgba(0,0,0,0.18); color: #fff; box-shadow: none; }
+
+.row-date .today-col {
+  background: #FF6600 !important;
+}
+.row-date .today-col .holiday-name { color: #fff; }
+
+.holiday-name {
+  display: block;
+  font-size: 7px;
+  color: #e53935;
+  text-align: right;
+  padding-right: 2px;
+  line-height: 1;
+  margin-top: 1px;
+}
+
+/* ─── 個人メモ行 ─── */
+.row-personal td {
+  height: 17px;
+  border: 1px solid #e0e0e0;
+  vertical-align: middle;
+  padding: 0 2px;
+  font-size: 8px;
+  font-style: italic;
+}
+.row-personal .cell-lbl {
+  position: sticky;
+  left: 0;
+  z-index: 20;
+  background: #fff9c4;
+  color: #f9a825;
+  font-size: 7px;
+  font-weight: 700;
+  font-style: normal;
+  text-align: center;
+  padding: 0;
+  border-right: 2px solid #ffe082;
+  letter-spacing: 0.5px;
+}
+.personal-cell {
+  background: #fffde7;
+  color: #5d4037;
+  cursor: pointer;
+  text-align: center;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.personal-cell:hover { background: #fff9c4; }
+.personal-cell.has-text { background: #fff176; font-weight: 700; }
+
+/* ─── クライアント行 ─── */
+.row-client td {
+  height: 21px;
+  border: 1px solid rgba(0,0,0,0.07);
+  vertical-align: middle;
+  padding: 0 2px;
+  font-size: 9px;
+}
+.row-client .cell-lbl {
+  position: sticky;
+  left: 0;
+  z-index: 20;
+  font-size: 8px;
+  font-weight: 800;
+  padding: 0 4px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-right: 2px solid rgba(0,0,0,0.15);
+  letter-spacing: 0.3px;
+}
+
+/* 週の最後のクライアント行：区切り */
+.row-client.week-end td { border-bottom: 2px solid #aaa; }
+
+/* データセル */
+.dcell {
+  cursor: pointer;
+  text-align: center;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: filter 0.08s;
+}
+.dcell:hover { filter: brightness(0.82); }
+
+/* 日曜列のうっすら赤味 */
+.dcell.col-sun-tint { box-shadow: inset 0 0 0 999px rgba(229,57,53,0.04); }
+
+/* ── マイルストーン：白文字（背景はクライアントの濃い色をJSでセット） ── */
+.dcell.is-ms {
+  color: white !important;
+  font-weight: 700;
+  font-size: 8px;
+  border: none !important;
+}
+
+/* ── ラン：うっすら濃くなるだけ ── */
+.dcell.is-run { /* background は inline style */ }
+
+/* ── 複数選択ハイライト ── */
+.dcell.is-selected {
+  box-shadow: inset 0 0 0 2px #1e88e5, inset 0 0 0 999px rgba(30,136,229,0.22);
+}
+
+/* ── 完了（グレー） ── */
+.dcell.is-done {
+  background: #9e9e9e !important;
+  color: #e0e0e0 !important;
+  font-size: 8px;
+  border: none !important;
+}
+
+/* ── マイルストーン列オーバーレイ ── */
+.ms-overlay {
+  position: absolute;
+  border: 3px solid #dc2626;
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 15;
+  box-sizing: border-box;
+}
+
+#tbl-container {
+  position: relative;
+  display: inline-block;
+}
+
+/* ─── モーダル ─── */
+.mbg {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 300;
+  align-items: center;
+  justify-content: center;
+}
+.mbg.open { display: flex; }
+.mdl {
+  background: #fff;
+  border-radius: 10px;
+  padding: 20px;
+  min-width: 300px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.45);
+}
+.mdl-client { font-size: 12px; font-weight: 900; letter-spacing: 1px; margin-bottom: 2px; }
+.mdl-date   { font-size: 10px; color: #aaa; margin-bottom: 14px; }
+.sec { font-size: 8px; color: #bbb; font-weight: 700; letter-spacing: 2px; margin: 12px 0 6px; }
+.btn-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 2px; }
+.ev-btn {
+  padding: 8px 2px;
+  border: 2px solid #dc2626;
+  background: rgba(34,197,94,0.18);
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.4;
+}
+.ev-btn:hover { background: rgba(34,197,94,0.40); }
+.cust-row { display: flex; gap: 5px; margin-bottom: 2px; }
+.cust-row input {
+  flex: 1; padding: 6px 8px;
+  border: 1px solid #ddd; border-radius: 5px;
+  font-size: 10px; outline: none;
+}
+.cust-row input:focus { border-color: #dc2626; }
+.cust-row button {
+  padding: 6px 10px; background: #222; color: #fff;
+  border: none; border-radius: 5px; cursor: pointer;
+  font-size: 9px; font-weight: 700;
+}
+.hr { border: none; border-top: 1px solid #eee; margin: 10px 0; }
+.run-btn {
+  width: 100%; padding: 8px; border: none; border-radius: 6px;
+  cursor: pointer; font-size: 9px; font-weight: 700;
+  color: white; letter-spacing: 0.5px; margin-bottom: 8px;
+}
+.act-row { display: flex; gap: 5px; }
+.clr-btn {
+  flex: 1; padding: 7px; background: #f5f5f5;
+  border: 1px solid #ddd; border-radius: 5px;
+  cursor: pointer; font-size: 9px; color: #555;
+}
+.clr-btn:hover { background: #eee; }
+.can-btn {
+  flex: 1; padding: 7px; background: #fff;
+  border: 1px solid #ddd; border-radius: 5px;
+  cursor: pointer; font-size: 9px; color: #bbb;
+}
+
+/* ─── 印刷 ─── */
+* {
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+
+@media print {
+  .toolbar { display: none; }
+  body { background: #fff; }
+  .wrap { padding: 0; overflow: visible; }
+  @page { size: A3 portrait; margin: 6mm; }
+  #tbl-container { zoom: 0.78; }
+}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <h1>鬼スケジュール 2026</h1>
+  <button onclick="window.print()">印刷 / PDF</button>
+  <button id="undo-btn" onclick="undo()" style="border-color:#f9a825;color:#ffd54f;" disabled>元に戻す</button>
+  <button id="redo-btn" onclick="redo()" style="border-color:#64b5f6;color:#90caf9;" disabled>やり直す</button>
+  <button onclick="doReset()" style="border-color:#c62828;color:#ff8a80;">全クリア</button>
+  <span class="hint">左クリック = 直接入力（作業メモ）</span>
+  <span class="hint-ms">右クリック = 撮影日・納品・提出などのマイルストーン入力</span>
+  <span class="last-upd" id="last-upd"></span>
+</div>
+
+<div class="wrap">
+  <div id="tbl-container">
+    <table id="tbl"></table>
+  </div>
+</div>
+
+<!-- モーダル -->
+<div class="mbg" id="mbg">
+  <div class="mdl" onclick="event.stopPropagation()">
+    <div class="mdl-client" id="m-name"></div>
+    <div class="mdl-date"   id="m-date"></div>
+
+    <div class="sec">MILESTONE — マイルストーン</div>
+    <div class="btn-grid">
+      <button class="ev-btn" onclick="doApply('撮影')">撮影</button>
+      <button class="ev-btn" onclick="doApply('納品')">納品</button>
+      <button class="ev-btn" onclick="doApply('絵コンテ提出')">絵コンテ<br>提出</button>
+      <button class="ev-btn" onclick="doApply('1st提出')">1st提出</button>
+      <button class="ev-btn" onclick="doApply('2nd提出')">2nd提出</button>
+      <button class="ev-btn" onclick="doApply('3rd提出')">3rd提出</button>
+    </div>
+    <div class="cust-row">
+      <input id="ms-custom" type="text" placeholder="自由入力（例：仮納品・仮撮影…）"
+             onkeydown="if(event.key==='Enter'&&!event.isComposing)doMsCustom()">
+      <button onclick="doMsCustom()">追加</button>
+    </div>
+
+    <div class="hr"></div>
+    <div class="sec" style="margin-top:0">RUN — ラン（期間塗り）</div>
+    <button class="run-btn" id="run-btn" onclick="doApply('__RUN__')">このセルをランに含める</button>
+
+    <div class="hr"></div>
+    <div class="sec" style="margin-top:0">DONE — 完了（グレー塗り）</div>
+    <button onclick="doApply('__DONE__')" style="width:100%;padding:8px;border:none;border-radius:6px;cursor:pointer;font-size:9px;font-weight:700;background:#9e9e9e;color:white;margin-bottom:8px;">このセルを完了にする（グレー）</button>
+
+    <div class="act-row">
+      <button class="clr-btn" onclick="doApply(null)">クリア</button>
+      <button class="can-btn" onclick="closeModal()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ================================================================
+//  Firebase 設定（★ここを自分のプロジェクトの値に書き換えてください）
+// ================================================================
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyB2_qwuIRvkQULdEuAzPscPFaeoZOYTnU0",
+  authDomain:        "onischedule-85e25.firebaseapp.com",
+  databaseURL:       "https://onischedule-85e25-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:         "onischedule-85e25",
+  storageBucket:     "onischedule-85e25.firebasestorage.app",
+  messagingSenderId: "357229294988",
+  appId:             "1:357229294988:web:b24e01a1f898611a5012a9"
+};
+firebase.initializeApp(FIREBASE_CONFIG);
+const _db         = firebase.database();
+const _stateRef   = _db.ref('oni_schedule/state');
+const _updatedRef = _db.ref('oni_schedule/updated');
+let _lastSaveMs   = 0;
+const ECHO_WINDOW = 3000; // 自分の書き込みエコーを無視するウィンドウ(ms)
+let _fbReady      = false; // Firebase初回読み込み完了フラグ
+
+// ================================================================
+//  定数
+// ================================================================
+const CLIENTS = [
+  { name:'MODERNTIMES',       light:'#eceff1', semi:'#dce3e8', dark:'#546e7a' },
+  { name:'G-SHOCK',           light:'#e3f2fd', semi:'#c8e5fb', dark:'#1565c0' },
+  { name:'FUJI ROCK',         light:'#fff8e1', semi:'#fdefc0', dark:'#f9a825' },
+  { name:'BEAMS PLUS',        light:'#e8f5e9', semi:'#d0ead2', dark:'#388e3c' },
+  { name:'NIKE',              light:'#fce4ec', semi:'#f8cedd', dark:'#c2185b' },
+  { name:'TIMBERLAND',        light:'#efebe9', semi:'#e0d5cf', dark:'#795548', until:'2026-06-06' },
+  { name:'ADIDAS',            light:'#f5f5f5', semi:'#e0e0e0', dark:'#212121', since:'2026-06-07' },
+  { name:'BILL WALL LEATHER', light:'#f3e5f5', semi:'#e6ccea', dark:'#7b1fa2' },
+  { name:'STARBUCKS',         light:'#fff3e0', semi:'#ffe0b2', dark:'#e65100' },
+];
+
+const HOLIDAYS = {
+  '2026-07-20': '海の日',
+};
+
+const _td = new Date(), _p = n => String(n).padStart(2,'0');
+const TODAY_STR = _td.getFullYear()+'-'+_p(_td.getMonth()+1)+'-'+_p(_td.getDate());
+
+const DOW_JA      = ['日','月','火','水','木','金','土'];
+const MONTHS_JA   = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+const DOW_THTAGS  = ['th-sun','th-mon','th-tue','th-wed','th-thu','th-fri','th-sat'];
+const STORAGE_KEY   = 'oni_sch_v3';
+const HISTORY_KEY   = 'oni_sch_hist_v2'; // v2: タイムスタンプ付き
+const REDO_KEY      = 'oni_sch_redo_v1';
+const UPDATED_KEY   = 'oni_sch_updated';
+const MAX_HISTORY   = 50;
+
+// ================================================================
+//  デフォルトスケジュールデータ
+// ================================================================
+const DEFAULT_STATE = {
+  // ── FRF（FUJI ROCK）──────────────────────────────
+  'FUJI ROCK:2026-06-12': { type:'ms',  label:'初稿提出'  },
+  'FUJI ROCK:2026-06-13': { type:'run'                    },
+  'FUJI ROCK:2026-06-14': { type:'run'                    },
+  'FUJI ROCK:2026-06-15': { type:'run'                    },
+  'FUJI ROCK:2026-06-16': { type:'run'                    },
+  'FUJI ROCK:2026-06-17': { type:'run'                    },
+  'FUJI ROCK:2026-06-18': { type:'run'                    },
+  'FUJI ROCK:2026-06-19': { type:'ms',  label:'最終納品'  },
+
+  // ── BRIEFING（BEAMS PLUS）────────────────────────
+  'BEAMS PLUS:2026-06-10': { type:'ms',  label:'撮影'     },
+  'BEAMS PLUS:2026-06-11': { type:'run'                   },
+  'BEAMS PLUS:2026-06-12': { type:'run'                   },
+  'BEAMS PLUS:2026-06-13': { type:'run'                   },
+  'BEAMS PLUS:2026-06-14': { type:'run'                   },
+  'BEAMS PLUS:2026-06-15': { type:'ms',  label:'素材納品' },
+  'BEAMS PLUS:2026-07-06': { type:'ms',  label:'1st提出'  },
+
+  // ── NIKE ──────────────────────────────────────────
+  'NIKE:2026-06-05': { type:'ms',  label:'初回提案'    },
+  'NIKE:2026-06-06': { type:'run'                      },
+  'NIKE:2026-06-07': { type:'run'                      },
+  'NIKE:2026-06-08': { type:'run'                      },
+  'NIKE:2026-06-09': { type:'ms',  label:'UP/チェック' },
+  'NIKE:2026-06-10': { type:'run'                      },
+  'NIKE:2026-06-11': { type:'run'                      },
+  'NIKE:2026-06-12': { type:'ms',  label:'チェック2'   },
+  'NIKE:2026-06-13': { type:'run'                      },
+  'NIKE:2026-06-14': { type:'run'                      },
+  'NIKE:2026-06-15': { type:'ms',  label:'チェック2'   },
+  'NIKE:2026-06-16': { type:'run'                      },
+  'NIKE:2026-06-17': { type:'run'                      },
+  'NIKE:2026-06-18': { type:'run'                      },
+  'NIKE:2026-06-19': { type:'run'                      },
+  'NIKE:2026-06-20': { type:'run'                      },
+  'NIKE:2026-06-21': { type:'run'                      },
+  'NIKE:2026-06-22': { type:'ms',  label:'AD確定'      },
+  'NIKE:2026-07-05': { type:'run'                      },
+  'NIKE:2026-07-06': { type:'run'                      },
+  'NIKE:2026-07-07': { type:'ms',  label:'撮影'        },
+  'NIKE:2026-07-08': { type:'run'                      },
+  'NIKE:2026-07-09': { type:'run'                      },
+  'NIKE:2026-07-10': { type:'run'                      },
+  'NIKE:2026-07-11': { type:'run'                      },
+};
+
+// ================================================================
+//  状態管理
+// ================================================================
+let S = {};
+let H = [];        // undo履歴 [{s: JSON文字列, t: タイムスタンプ文字列}, ...]
+let R = [];        // redo履歴
+let lastUpdated = null;
+
+
+const load = () => {
+  // 1. ローカルストレージから即時表示（オフライン時のフォールバック）
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+    S = { ...DEFAULT_STATE, ...saved };
+  } catch(e) { S = { ...DEFAULT_STATE }; }
+  try { H = JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch(e) { H = []; }
+  try { R = JSON.parse(localStorage.getItem(REDO_KEY)) || []; } catch(e) { R = []; }
+  lastUpdated = localStorage.getItem(UPDATED_KEY) || null;
+
+  // 2. Firebase から読み込み + リアルタイム同期リスナー
+  _stateRef.on('value', snapshot => {
+    if (!_fbReady) {
+      // 初回: Firebase の値でローカルを上書き
+      _fbReady = true;
+      if (snapshot.exists() && snapshot.val()) {
+        const remote = snapshot.val();
+        S = { ...DEFAULT_STATE, ...remote };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(remote));
+        build(); drawOverlays(); refreshLabels(); updateHistoryBtns(); updateLastUpd();
+      }
+      return;
+    }
+    // 2回目以降: 自分の書き込みエコーは無視
+    if (Date.now() - _lastSaveMs < ECHO_WINDOW) return;
+    if (!snapshot.exists() || !snapshot.val()) return;
+    // 他デバイスからの変更を反映
+    const remote = snapshot.val();
+    S = { ...DEFAULT_STATE, ...remote };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(remote));
+    build(); drawOverlays(); refreshLabels(); updateHistoryBtns(); updateLastUpd();
+  });
+
+  _updatedRef.on('value', snapshot => {
+    if (!snapshot.exists() || !snapshot.val()) return;
+    if (Date.now() - _lastSaveMs < ECHO_WINDOW) return;
+    const remote = snapshot.val();
+    if (remote === lastUpdated) return;
+    lastUpdated = remote;
+    localStorage.setItem(UPDATED_KEY, lastUpdated);
+    updateLastUpd();
+  });
+};
+
+const save = () => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(S));
+  _lastSaveMs = Date.now();
+  _stateRef.set(S).catch(e => console.warn('Firebase保存エラー:', e));
+};
+
+function pushHistory() {
+  // 変更前の状態＋その時点のタイムスタンプをスタックへ
+  H.push({ s: JSON.stringify(S), t: lastUpdated });
+  if (H.length > MAX_HISTORY) H.shift();
+  R = []; localStorage.removeItem(REDO_KEY);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(H));
+  // 変更後の現在時刻を最終更新日時にセット
+  lastUpdated = nowStr();
+  localStorage.setItem(UPDATED_KEY, lastUpdated);
+  _updatedRef.set(lastUpdated).catch(()=>{});
+  updateHistoryBtns();
+  updateLastUpd();
+}
+
+function undo() {
+  if (!H.length) return;
+  R.push({ s: JSON.stringify(S), t: lastUpdated });
+  localStorage.setItem(REDO_KEY, JSON.stringify(R));
+  const prev = H.pop();
+  S = JSON.parse(prev.s);
+  lastUpdated = prev.t;
+  save();
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(H));
+  localStorage.setItem(UPDATED_KEY, lastUpdated || '');
+  build();
+  drawOverlays();
+  refreshLabels();
+  updateHistoryBtns();
+  updateLastUpd();
+}
+
+function redo() {
+  if (!R.length) return;
+  H.push({ s: JSON.stringify(S), t: lastUpdated });
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(H));
+  const next = R.pop();
+  S = JSON.parse(next.s);
+  lastUpdated = next.t;
+  save();
+  localStorage.setItem(REDO_KEY, JSON.stringify(R));
+  localStorage.setItem(UPDATED_KEY, lastUpdated || '');
+  build();
+  drawOverlays();
+  refreshLabels();
+  updateHistoryBtns();
+  updateLastUpd();
+}
+
+function updateHistoryBtns() {
+  const uBtn = document.getElementById('undo-btn');
+  if (uBtn) { uBtn.disabled = H.length === 0; uBtn.textContent = H.length ? `元に戻す (${H.length})` : '元に戻す'; }
+  const rBtn = document.getElementById('redo-btn');
+  if (rBtn) { rBtn.disabled = R.length === 0; rBtn.textContent = R.length ? `やり直す (${R.length})` : 'やり直す'; }
+}
+
+function updateLastUpd() {
+  const el = document.getElementById('last-upd');
+  if (!el) return;
+  el.textContent = '最終更新: ' + (lastUpdated || '—');
+}
+
+// ================================================================
+//  日付ユーティリティ
+// ================================================================
+const pad    = n => String(n).padStart(2,'0');
+const fmt    = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const nowStr = () => {
+  const d = new Date();
+  return d.getFullYear()+'/'+pad(d.getMonth()+1)+'/'+pad(d.getDate())
+    +' '+pad(d.getHours())+':'+pad(d.getMinutes());
+};
+
+// 2026-05-24 (日) が起点
+function getWeeks() {
+  const first = new Date(2026,4,24); // 5/24 日曜
+  const last  = new Date(2026,6,31); // 7/31
+  const weeks = [];
+  for (let d=new Date(first); d<=last; d.setDate(d.getDate()+7)) {
+    const w=[];
+    for (let i=0;i<7;i++) w.push(new Date(d.getFullYear(),d.getMonth(),d.getDate()+i));
+    weeks.push(w);
+  }
+  return weeks;
+}
+
+// ================================================================
+//  テーブル構築
+// ================================================================
+function build() {
+  const tbl = document.getElementById('tbl');
+  tbl.innerHTML = '';
+  const weeks = getWeeks();
+
+  // ── thead ──
+  const thead = tbl.createTHead();
+  const hr = thead.insertRow();
+  mkTh(hr,'th-lbl','CLIENT');
+  DOW_JA.forEach((j,i) => mkTh(hr,DOW_THTAGS[i],['日曜','月曜','火曜','水曜','木曜','金曜','土曜'][i]));
+
+  // ── tbody ──
+  const tbody = tbl.createTBody();
+
+  weeks.forEach((week,wi) => {
+    // 日付行
+    const dr = tbody.insertRow();
+    dr.className = 'row-date';
+
+    const months = [...new Set(week.map(d=>d.getMonth()))];
+    const lbl = mkTd(dr, 'cell-lbl');
+    lbl.textContent = months.map(m=>MONTHS_JA[m]).join(' / ');
+
+    week.forEach(d => {
+      const td = mkTd(dr,'');
+      const dow = d.getDay();
+      const ds  = fmt(d);
+      const isHol = !!HOLIDAYS[ds];
+      if(dow===0) td.classList.add('col-sun');
+      if(dow===6) td.classList.add('col-sat');
+      if(ds===TODAY_STR) td.classList.add('today-col');
+
+      const sp = document.createElement('span');
+      sp.className = 'date-num';
+      if(ds===TODAY_STR)   sp.classList.add('dn-today');
+      else if(isHol)       sp.classList.add('dn-holiday');
+      else if(dow===0)     sp.classList.add('dn-sun');
+      else if(dow===6)     sp.classList.add('dn-sat');
+      sp.textContent = d.getDate();
+      td.appendChild(sp);
+
+      if(isHol) {
+        const hn = document.createElement('span');
+        hn.className = 'holiday-name';
+        hn.textContent = HOLIDAYS[ds];
+        td.appendChild(hn);
+      }
+    });
+
+    // 個人メモ行
+    const pr = tbody.insertRow();
+    pr.className = 'row-personal';
+    const plbl = mkTd(pr, 'cell-lbl');
+    plbl.textContent = 'MY';
+
+    week.forEach(d => {
+      const td = mkTd(pr, 'personal-cell');
+      const key = 'PERSONAL:' + fmt(d);
+      td.dataset.key  = key;
+      td.dataset.date = fmt(d);
+      if (S[key]) { td.textContent = S[key].label; td.classList.add('has-text'); }
+      td.addEventListener('mousedown', e => { if(e.button===0){ e.stopPropagation(); } });
+      td.addEventListener('click', () => startPersonalEdit(td));
+    });
+
+    // クライアント行
+    const weekStart = fmt(week[0]);
+    const weekEnd   = fmt(week[week.length-1]);
+    const visClients = CLIENTS.filter(cl =>
+      (!cl.since || weekEnd   >= cl.since) &&
+      (!cl.until || weekStart <= cl.until)
+    );
+    visClients.forEach((cl,ci) => {
+      const tr = tbody.insertRow();
+      tr.className = 'row-client' + (ci===visClients.length-1 ? ' week-end' : '');
+
+      const lbl = mkTd(tr,'cell-lbl');
+      lbl.dataset.ci = ci;
+      lbl.style.background = cl.light;
+      lbl.style.color = cl.dark;
+      lbl.textContent = cl.name;
+      lbl.title = cl.name;
+
+      week.forEach(d => {
+        const td = mkTd(tr,'dcell');
+        const dow = d.getDay();
+        if(dow===0) td.classList.add('col-sun-tint');
+        const key = cl.name+':'+fmt(d);
+        td.dataset.key = key;
+        td.dataset.ci  = ci;
+        td.dataset.date = fmt(d);
+        draw(td, S[key], cl);
+        td.addEventListener('mousedown',   e => onCellDown(e, td));
+        td.addEventListener('mouseover',   e => onCellOver(e, td));
+        td.addEventListener('contextmenu', e => { e.preventDefault(); onCellRight(td); });
+      });
+    });
+  });
+}
+
+function mkTh(row, cls, text) {
+  const th = document.createElement('th');
+  th.className = cls;
+  th.textContent = text;
+  row.appendChild(th);
+  return th;
+}
+
+function mkTd(row, cls) {
+  const td = row.insertCell();
+  td.className = cls;
+  return td;
+}
+
+// ================================================================
+//  セル描画
+// ================================================================
+function draw(td, cs, cl) {
+  td.classList.remove('is-ms','is-run');
+  td.style.cssText = '';
+  td.textContent = '';
+
+  // col-sun-tint は再適用
+  const d = new Date(td.dataset.date);
+  if(d.getDay()===0) td.classList.add('col-sun-tint');
+
+  if(!cs) {
+    td.style.background = cl.light;
+    return;
+  }
+  if(cs.type==='run') {
+    td.classList.add('is-run');
+    td.style.background = cl.semi;
+    return;
+  }
+  if(cs.type==='done') {
+    td.classList.add('is-done');
+    if(cs.label) td.textContent = cs.label;
+    return;
+  }
+  if(cs.type==='note') {
+    td.style.background = cl.semi;
+    td.style.color = cl.dark;
+    td.style.fontWeight = '700';
+    td.style.fontSize = '8px';
+    td.textContent = cs.label||'';
+    return;
+  }
+  if(cs.type==='ms') {
+    td.classList.add('is-ms');
+    td.style.background = cl.dark;
+    td.textContent = cs.label||'';
+  }
+}
+
+// ================================================================
+//  複数選択
+// ================================================================
+let sel       = new Set(); // 選択中セルのkey集合
+let dragging  = false;
+let dragMoved = false;
+
+function addSel(td)    { sel.add(td.dataset.key); td.classList.add('is-selected'); }
+function removeSel(td) { sel.delete(td.dataset.key); td.classList.remove('is-selected'); }
+function clearSel()    { sel.forEach(k => { const t = document.querySelector(`.dcell[data-key="${k}"]`); if(t) t.classList.remove('is-selected'); }); sel.clear(); }
+function toggleSel(td) { sel.has(td.dataset.key) ? removeSel(td) : addSel(td); }
+
+function onCellDown(e, td) {
+  if (e.button !== 0) return;
+  dragMoved = false; dragging = true;
+  if (e.metaKey || e.ctrlKey) { toggleSel(td); }
+  else if (e.shiftKey)        { addSel(td); }
+  else                        { clearSel(); addSel(td); }
+}
+
+function onCellOver(e, td) {
+  if (!dragging) return;
+  addSel(td); dragMoved = true;
+}
+
+function onCellRight(td) {
+  if (!sel.has(td.dataset.key)) { clearSel(); addSel(td); }
+  openModal(td);
+}
+
+// マウスアップ（単クリック判定）
+document.addEventListener('mouseup', e => {
+  if (!dragging) return;
+  dragging = false;
+  if (dragMoved) return; // ドラッグ中はそのまま選択維持
+  // 単クリック：通常のセル操作
+  if (e.button === 0) {
+    const td = e.target.closest('.dcell');
+    if (!td) return;
+    if (!e.metaKey && !e.ctrlKey && !e.shiftKey) {
+      clearSel();
+      cellClick(td);
+    }
+  }
+});
+
+// セル外クリックで選択解除
+document.addEventListener('mousedown', e => {
+  if (!e.target.closest('.dcell') && !e.target.closest('.mbg')) clearSel();
+});
+
+// ================================================================
+//  セルクリック・インライン入力
+// ================================================================
+function cellClick(td) {
+  const cs = S[td.dataset.key];
+  if (cs && (cs.type === 'ms' || cs.type === 'done')) { openModal(td); return; }
+  startInlineEdit(td);
+}
+
+function startInlineEdit(td) {
+  if (td.querySelector('input')) return;
+  const ci = parseInt(td.dataset.ci);
+  const cl = CLIENTS[ci];
+  const cs = S[td.dataset.key];
+
+  // 編集開始前の値を記録（変更チェック用）
+  const prevLabel = (cs && cs.type === 'note' && cs.label) || '';
+
+  const input = document.createElement('input');
+  input.type  = 'text';
+  input.value = prevLabel;
+  input.style.cssText = [
+    'width:100%','height:100%','border:none',
+    'outline:2px solid '+cl.dark,
+    'background:white','font-size:9px','font-weight:700',
+    'text-align:center','padding:0 2px','box-sizing:border-box'
+  ].join(';');
+
+  td.textContent = '';
+  td.appendChild(input);
+  input.focus();
+  input.select();
+
+  let committed = false;
+  function commit() {
+    if (committed) return;
+    committed = true;
+    const val = input.value.trim();
+    // 変更がなければ履歴に積まずそのまま再描画だけ
+    if (val === prevLabel) { draw(td, S[td.dataset.key], cl); return; }
+    pushHistory();
+    if (val) S[td.dataset.key] = { type:'note', label:val };
+    else     delete S[td.dataset.key];
+    save();
+    draw(td, S[td.dataset.key], cl);
+    drawOverlays();
+    refreshLabels();
+    updateHistoryBtns();
+  }
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.isComposing)  commit();
+    if (e.key === 'Escape') { committed = true; draw(td, S[td.dataset.key], cl); }
+  });
+  input.addEventListener('blur', commit);
+}
+
+// ================================================================
+//  個人メモ行のインライン入力
+// ================================================================
+function startPersonalEdit(td) {
+  if (td.querySelector('input')) return;
+  const prev = S[td.dataset.key] ? S[td.dataset.key].label : '';
+
+  const input = document.createElement('input');
+  input.type  = 'text';
+  input.value = prev;
+  input.style.cssText = 'width:100%;height:100%;border:none;outline:2px solid #f9a825;background:white;font-size:8px;font-style:italic;text-align:center;padding:0 2px;box-sizing:border-box;';
+
+  td.textContent = '';
+  td.classList.remove('has-text');
+  td.appendChild(input);
+  input.focus();
+  input.select();
+
+  let committed = false;
+  function commit() {
+    if (committed) return;
+    committed = true;
+    const val = input.value.trim();
+    if (val === prev) { drawPersonalCell(td); return; }
+    pushHistory();
+    if (val) S[td.dataset.key] = { label: val };
+    else     delete S[td.dataset.key];
+    save();
+    drawPersonalCell(td);
+    updateHistoryBtns();
+  }
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.isComposing)  commit();
+    if (e.key === 'Escape') { committed = true; drawPersonalCell(td); }
+  });
+  input.addEventListener('blur', commit);
+}
+
+function drawPersonalCell(td) {
+  const cs = S[td.dataset.key];
+  td.textContent = cs ? cs.label : '';
+  td.classList.toggle('has-text', !!cs);
+}
+
+// ================================================================
+//  モーダル
+// ================================================================
+let aKey=null, aTd=null, aCl=null;
+
+function openModal(td) {
+  aKey = td.dataset.key;
+  aTd  = td;
+  aCl  = CLIENTS[+td.dataset.ci];
+  const d  = new Date(td.dataset.date);
+  const ds = td.dataset.date;
+
+  const multi = sel.size > 1;
+  document.getElementById('m-name').textContent = multi ? `${sel.size}セル選択中` : aCl.name;
+  document.getElementById('m-name').style.color = multi ? '#1e88e5' : aCl.dark;
+  document.getElementById('m-date').textContent = multi
+    ? '選択中のセルすべてに一括適用されます'
+    : MONTHS_JA[d.getMonth()] + d.getDate() + '日（' + DOW_JA[d.getDay()] + '）'
+      + (HOLIDAYS[ds] ? '　' + HOLIDAYS[ds] : '');
+
+  const rb = document.getElementById('run-btn');
+  rb.style.background = aCl.semi;
+  rb.style.color = aCl.dark;
+  rb.style.border = '2px solid '+aCl.dark;
+
+  document.getElementById('ms-custom').value = '';
+  document.getElementById('mbg').classList.add('open');
+  setTimeout(()=>document.getElementById('ms-custom').focus(), 60);
+}
+
+function closeModal() {
+  document.getElementById('mbg').classList.remove('open');
+  aKey=aTd=aCl=null;
+}
+document.getElementById('mbg').addEventListener('click', closeModal);
+
+function doApply(label) {
+  if(!aKey) return;
+  pushHistory();
+
+  // 複数選択中なら全選択セルに適用、単独なら aKey のみ
+  const targets = sel.size > 1 ? [...sel] : [aKey];
+
+  targets.forEach(key => {
+    if(label===null)          delete S[key];
+    else if(label==='__RUN__')  S[key]={type:'run'};
+    else if(label==='__DONE__') S[key]={type:'done'};
+    else                        S[key]={type:'ms', label};
+  });
+
+  save();
+
+  // 各セルを再描画
+  targets.forEach(key => {
+    const ci = CLIENTS.findIndex(c => key.startsWith(c.name+':'));
+    if(ci < 0) return;
+    const t = document.querySelector(`.dcell[data-key="${key}"]`);
+    if(t) draw(t, S[key], CLIENTS[ci]);
+  });
+
+  clearSel();
+  drawOverlays();
+  refreshLabels();
+  updateHistoryBtns();
+  closeModal();
+}
+
+
+function refreshLabels() {
+  CLIENTS.forEach((cl, ci) => {
+    const prefix = cl.name + ':';
+    let hasActive = false, hasDone = false;
+    Object.keys(S).forEach(k => {
+      if (!k.startsWith(prefix)) return;
+      const v = S[k];
+      if (!v) return;
+      if (v.type === 'done') hasDone = true;
+      else hasActive = true; // run / ms / note
+    });
+    const isDone = hasDone && !hasActive;
+    document.querySelectorAll(`.cell-lbl[data-ci="${ci}"]`).forEach(el => {
+      el.style.background = isDone ? '#757575' : cl.light;
+      el.style.color      = isDone ? '#ccc'    : cl.dark;
+    });
+  });
+}
+
+function doMsCustom() {
+  const t = document.getElementById('ms-custom').value.trim();
+  if (t) doApply(t);
+}
+
+function doReset() {
+  if(!confirm('全データをクリアします。よろしいですか？')) return;
+  pushHistory();
+  S={}; save(); build(); drawOverlays(); refreshLabels();
+}
+
+// ================================================================
+//  マイルストーン列オーバーレイ（全クライアントを跨ぐ赤枠）
+// ================================================================
+function drawOverlays() {
+  const container = document.getElementById('tbl-container');
+  container.querySelectorAll('.ms-overlay').forEach(el => el.remove());
+
+  const msDates = new Set();
+  document.querySelectorAll('.dcell.is-ms').forEach(td => msDates.add(td.dataset.date));
+
+  msDates.forEach(date => {
+    const cells = [...document.querySelectorAll(`.dcell[data-date="${date}"]`)];
+    if (!cells.length) return;
+
+    const first = relOffset(cells[0], container);
+    const last  = relOffset(cells[cells.length - 1], container);
+    const w     = cells[0].offsetWidth;
+    const h     = last.top - first.top + cells[cells.length - 1].offsetHeight;
+
+    const div = document.createElement('div');
+    div.className = 'ms-overlay';
+    div.style.top    = first.top  + 'px';
+    div.style.left   = first.left + 'px';
+    div.style.width  = w + 'px';
+    div.style.height = h + 'px';
+    container.appendChild(div);
+  });
+}
+
+function relOffset(el, container) {
+  let top = 0, left = 0, cur = el;
+  while (cur && cur !== container) {
+    top  += cur.offsetTop;
+    left += cur.offsetLeft;
+    cur   = cur.offsetParent;
+  }
+  return { top, left };
+}
+
+// ================================================================
+//  初期化
+// ================================================================
+load();
+build();
+drawOverlays();
+refreshLabels();
+updateHistoryBtns();
+updateLastUpd();
+</script>
+</body>
+</html>
