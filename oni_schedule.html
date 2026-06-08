@@ -319,6 +319,19 @@ thead th {
   @page { size: A3 portrait; margin: 6mm; }
   #tbl-container { zoom: 0.78; }
 }
+
+@media (max-width: 768px) {
+  .toolbar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 6px;
+    padding: 6px 10px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .toolbar h1 { font-size: 10px; white-space: nowrap; flex-shrink: 0; }
+  .toolbar button { padding: 4px 8px; font-size: 9px; white-space: nowrap; flex-shrink: 0; }
+  .hint, .hint-ms, .last-upd { display: none; }
+}
 </style>
 </head>
 <body>
