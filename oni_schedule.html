@@ -333,8 +333,8 @@ thead th {
   .hint, .hint-ms, .last-upd { display: none; }
 }
 
-/* ─── スマホ最適化（< 600px） ─── */
-@media (max-width: 600px) {
+/* ─── スマホ最適化（< 900px） ─── */
+@media (max-width: 900px) {
   /* ツールバー */
   .toolbar { padding: 5px 8px; gap: 5px; }
   .toolbar h1 { font-size: 9px; }
@@ -395,6 +395,11 @@ thead th {
 }
 /* デスクトップではガイドバーを非表示 */
 .mobile-guide { display: none; }
+
+/* スマホで body 自体の横はみ出しも防止 */
+@media (max-width: 900px) {
+  html, body { overflow-x: hidden; max-width: 100vw; }
+}
 </style>
 </head>
 <body>
