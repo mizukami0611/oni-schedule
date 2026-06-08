@@ -816,15 +816,19 @@ function build() {
         td.addEventListener('mousedown',   e => onCellDown(e, td));
         td.addEventListener('mouseover',   e => onCellOver(e, td));
         td.addEventListener('contextmenu', e => { e.preventDefault(); onCellRight(td); });
-        // スマホ：長押し（600ms）でマイルストーンモーダル
+        // スマホ：長押し（600ms）でモーダル。touchend でpreventDefaultし
+        // 長押し後にsimulatedなmousedown/click が発火してモーダルが閉じるのを防ぐ
         if (_isMobile) {
           let _lpt = null, _lpFired = false;
           td.addEventListener('touchstart', () => {
             _lpFired = false;
             _lpt = setTimeout(() => { _lpFired = true; _lpt = null; clearSel(); addSel(td); openModal(td); }, 600);
           }, { passive: true });
-          td.addEventListener('touchmove',  () => { if (_lpt) { clearTimeout(_lpt); _lpt = null; } }, { passive: true });
-          td.addEventListener('touchend',   () => { if (_lpt) { clearTimeout(_lpt); _lpt = null; } });
+          td.addEventListener('touchmove', () => { if (_lpt) { clearTimeout(_lpt); _lpt = null; } }, { passive: true });
+          td.addEventListener('touchend', e => {
+            if (_lpt) { clearTimeout(_lpt); _lpt = null; }
+            if (_lpFired) { _lpFired = false; e.preventDefault(); } // 長押し後：simulatedイベントを抑制
+          });
         }
       });
     });
@@ -943,8 +947,6 @@ document.addEventListener('mousedown', e => {
 function cellClick(td) {
   const cs = S[td.dataset.key];
   if (cs && (cs.type === 'ms' || cs.type === 'done')) { openModal(td); return; }
-  // スマホはモーダル経由、PCはインライン入力
-  if (_isMobile) { openModal(td); return; }
   startInlineEdit(td);
 }
 
