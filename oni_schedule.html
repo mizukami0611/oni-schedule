@@ -340,43 +340,11 @@ thead th {
   .toolbar h1 { font-size: 9px; }
   .toolbar button { padding: 3px 7px; font-size: 8px; }
 
-  /* ラッパー：横スクロール不要にする */
-  .wrap { padding: 0 0 60px; overflow-x: hidden; }
+  /* ラッパー：横スクロール可 */
+  .wrap { padding: 0 0 60px; overflow-x: auto; }
 
-  /* テーブルを画面幅に合わせる */
-  #tbl-container { width: 100vw; }
-  table { width: 100vw !important; }
-
-  /* CLIENT列を固定幅、曜日列を均等分配 */
-  .th-lbl {
-    width: 52px !important;
-    font-size: 6px;
-    letter-spacing: 0;
-  }
-  .th-sun, .th-mon, .th-tue, .th-wed, .th-thu, .th-fri, .th-sat {
-    width: calc((100vw - 52px) / 7) !important;
-    font-size: 8px;
-    letter-spacing: 0;
-    height: 26px;
-  }
-
-  /* 日付行 */
-  .row-date td { height: 22px; }
-  .date-num { width: 16px; height: 16px; font-size: 8.5px; }
-  .holiday-name { font-size: 6px; }
-
-  /* 個人メモ行 */
-  .row-personal td { height: 13px; }
-  .personal-cell { font-size: 6px; }
-
-  /* クライアント行 */
-  .row-client td { height: 19px; }
-  .row-client .cell-lbl { font-size: 6px; padding: 0 2px; letter-spacing: 0; }
-
-  /* データセル */
-  .dcell { font-size: 7px; }
-  .dcell.is-ms { font-size: 6.5px; }
-  .dcell.is-done { font-size: 6.5px; }
+  /* テーブル全体を50%縮小（列幅・フォント・間隔すべて均等に半分） */
+  #tbl-container { zoom: 0.5; }
 
   /* モーダル：上寄せ＋スクロール対応 */
   .mbg { align-items: flex-start; padding: 16px 12px; overflow-y: auto; }
