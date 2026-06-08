@@ -332,6 +332,70 @@ thead th {
   .toolbar button { padding: 4px 8px; font-size: 9px; white-space: nowrap; flex-shrink: 0; }
   .hint, .hint-ms, .last-upd { display: none; }
 }
+
+/* ─── スマホ最適化（< 600px） ─── */
+@media (max-width: 600px) {
+  /* ツールバー */
+  .toolbar { padding: 5px 8px; gap: 5px; }
+  .toolbar h1 { font-size: 9px; }
+  .toolbar button { padding: 3px 7px; font-size: 8px; }
+
+  /* ラッパー：横スクロール不要にする */
+  .wrap { padding: 0 0 60px; overflow-x: hidden; }
+
+  /* テーブルを画面幅に合わせる */
+  #tbl-container { width: 100vw; }
+  table { width: 100vw !important; }
+
+  /* CLIENT列を固定幅、曜日列を均等分配 */
+  .th-lbl {
+    width: 52px !important;
+    font-size: 6px;
+    letter-spacing: 0;
+  }
+  .th-sun, .th-mon, .th-tue, .th-wed, .th-thu, .th-fri, .th-sat {
+    width: calc((100vw - 52px) / 7) !important;
+    font-size: 8px;
+    letter-spacing: 0;
+    height: 26px;
+  }
+
+  /* 日付行 */
+  .row-date td { height: 22px; }
+  .date-num { width: 16px; height: 16px; font-size: 8.5px; }
+  .holiday-name { font-size: 6px; }
+
+  /* 個人メモ行 */
+  .row-personal td { height: 13px; }
+  .personal-cell { font-size: 6px; }
+
+  /* クライアント行 */
+  .row-client td { height: 19px; }
+  .row-client .cell-lbl { font-size: 6px; padding: 0 2px; letter-spacing: 0; }
+
+  /* データセル */
+  .dcell { font-size: 7px; }
+  .dcell.is-ms { font-size: 6.5px; }
+  .dcell.is-done { font-size: 6.5px; }
+
+  /* モーダルをほぼ全幅に */
+  .mdl { min-width: 0; width: calc(100vw - 24px); }
+
+  /* スマホ操作ガイドバー */
+  .mobile-guide {
+    display: flex;
+    background: #1a1a1a;
+    color: #aaa;
+    font-size: 9px;
+    padding: 4px 10px;
+    gap: 14px;
+    border-top: 1px solid #333;
+  }
+  .mobile-guide span { white-space: nowrap; }
+  .mobile-guide span b { color: #ffd54f; }
+}
+/* デスクトップではガイドバーを非表示 */
+.mobile-guide { display: none; }
 </style>
 </head>
 <body>
@@ -347,6 +411,11 @@ thead th {
   <span class="last-upd" id="last-upd"></span>
 </div>
 
+<div class="mobile-guide">
+  <span><b>タップ</b> → モーダルで入力</span>
+  <span><b>長押し</b> → マイルストーン選択</span>
+</div>
+
 <div class="wrap">
   <div id="tbl-container">
     <table id="tbl"></table>
@@ -359,7 +428,15 @@ thead th {
     <div class="mdl-client" id="m-name"></div>
     <div class="mdl-date"   id="m-date"></div>
 
-    <div class="sec">MILESTONE — マイルストーン</div>
+    <div class="sec">NOTE — 作業メモ</div>
+    <div class="cust-row">
+      <input id="note-custom" type="text" placeholder="作業メモを入力…（例：ラフ作成・打ち合わせ）"
+             onkeydown="if(event.key==='Enter'&&!event.isComposing)doNoteCustom()">
+      <button onclick="doNoteCustom()">入力</button>
+    </div>
+
+    <div class="hr"></div>
+    <div class="sec" style="margin-top:0">MILESTONE — マイルストーン</div>
     <div class="btn-grid">
       <button class="ev-btn" onclick="doApply('撮影')">撮影</button>
       <button class="ev-btn" onclick="doApply('納品')">納品</button>
@@ -390,6 +467,11 @@ thead th {
 </div>
 
 <script>
+// ================================================================
+//  デバイス判定
+// ================================================================
+const _isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
 // ================================================================
 //  Firebase 設定（★ここを自分のプロジェクトの値に書き換えてください）
 // ================================================================
@@ -734,6 +816,16 @@ function build() {
         td.addEventListener('mousedown',   e => onCellDown(e, td));
         td.addEventListener('mouseover',   e => onCellOver(e, td));
         td.addEventListener('contextmenu', e => { e.preventDefault(); onCellRight(td); });
+        // スマホ：長押し（600ms）でマイルストーンモーダル
+        if (_isMobile) {
+          let _lpt = null, _lpFired = false;
+          td.addEventListener('touchstart', () => {
+            _lpFired = false;
+            _lpt = setTimeout(() => { _lpFired = true; _lpt = null; clearSel(); addSel(td); openModal(td); }, 600);
+          }, { passive: true });
+          td.addEventListener('touchmove',  () => { if (_lpt) { clearTimeout(_lpt); _lpt = null; } }, { passive: true });
+          td.addEventListener('touchend',   () => { if (_lpt) { clearTimeout(_lpt); _lpt = null; } });
+        }
       });
     });
   });
@@ -851,6 +943,8 @@ document.addEventListener('mousedown', e => {
 function cellClick(td) {
   const cs = S[td.dataset.key];
   if (cs && (cs.type === 'ms' || cs.type === 'done')) { openModal(td); return; }
+  // スマホはモーダル経由、PCはインライン入力
+  if (_isMobile) { openModal(td); return; }
   startInlineEdit(td);
 }
 
@@ -971,8 +1065,10 @@ function openModal(td) {
   rb.style.border = '2px solid '+aCl.dark;
 
   document.getElementById('ms-custom').value = '';
+  document.getElementById('note-custom').value = '';
   document.getElementById('mbg').classList.add('open');
-  setTimeout(()=>document.getElementById('ms-custom').focus(), 60);
+  const focusTarget = _isMobile ? 'note-custom' : 'ms-custom';
+  setTimeout(()=>document.getElementById(focusTarget).focus(), 60);
 }
 
 function closeModal() {
@@ -1037,6 +1133,21 @@ function doMsCustom() {
   if (t) doApply(t);
 }
 
+function doNoteCustom() {
+  const t = document.getElementById('note-custom').value.trim();
+  if (!t || !aKey) return;
+  pushHistory();
+  const targets = sel.size > 1 ? [...sel] : [aKey];
+  targets.forEach(key => {
+    const td = document.querySelector(`.dcell[data-key="${key}"]`);
+    if (!td) return;
+    S[key] = { type:'note', label:t };
+    draw(td, S[key], CLIENTS[+td.dataset.ci]);
+  });
+  save(); drawOverlays(); refreshLabels(); updateHistoryBtns();
+  closeModal();
+}
+
 function doReset() {
   if(!confirm('全データをクリアします。よろしいですか？')) return;
   pushHistory();
@@ -1083,6 +1194,20 @@ function relOffset(el, container) {
 }
 
 // ================================================================
+//  今日の週へスクロール（モバイル用）
+// ================================================================
+function scrollToToday() {
+  if (window.innerWidth > 768) return;
+  const wrap = document.querySelector('.wrap');
+  const todayEl = document.querySelector('.today-col');
+  if (!todayEl || !wrap) return;
+  const wrapRect = wrap.getBoundingClientRect();
+  const cellRect = todayEl.getBoundingClientRect();
+  const labelW = window.innerWidth <= 600 ? 55 : 90;
+  wrap.scrollLeft += cellRect.left - wrapRect.left - labelW - 4;
+}
+
+// ================================================================
 //  初期化
 // ================================================================
 load();
@@ -1091,6 +1216,7 @@ drawOverlays();
 refreshLabels();
 updateHistoryBtns();
 updateLastUpd();
+scrollToToday();
 </script>
 </body>
 </html>
