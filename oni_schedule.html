@@ -499,15 +499,15 @@ let _fbReady      = false; // Firebase初回読み込み完了フラグ
 // ================================================================
 const CLIENTS = [
   { name:'MODERNTIMES',       light:'#eceff1', semi:'#dce3e8', dark:'#546e7a' },
-  { name:'G-SHOCK',           light:'#e3f2fd', semi:'#c8e5fb', dark:'#1565c0' },
-  { name:'FUJI ROCK',         light:'#fff8e1', semi:'#fdefc0', dark:'#f9a825' },
   { name:'BEAMS PLUS',        light:'#e8f5e9', semi:'#d0ead2', dark:'#388e3c' },
   { name:'NIKE',              light:'#fce4ec', semi:'#f8cedd', dark:'#c2185b' },
   { name:'TIMBERLAND',        light:'#efebe9', semi:'#e0d5cf', dark:'#795548', until:'2026-06-06' },
   { name:'ADIDAS',            light:'#f5f5f5', semi:'#e0e0e0', dark:'#212121', since:'2026-06-07' },
-  { name:'BILL WALL LEATHER', light:'#f3e5f5', semi:'#e6ccea', dark:'#7b1fa2' },
+  { name:'UNITED ARROWS BY',  light:'#f3e5f5', semi:'#e6ccea', dark:'#7b1fa2' },
   { name:'STARBUCKS',         light:'#fff3e0', semi:'#ffe0b2', dark:'#e65100' },
   { name:'REGAL',             light:'#e8eaf6', semi:'#c5cae9', dark:'#283593' },
+  { name:'G-SHOCK',           light:'#e3f2fd', semi:'#c8e5fb', dark:'#1565c0', renameSince:'2026-06-21', renameTo:'マンガート' },
+  { name:'FUJI ROCK',         light:'#fff8e1', semi:'#fdefc0', dark:'#f9a825', hideNameSince:'2026-06-21' },
 ];
 
 const HOLIDAYS = {
@@ -806,8 +806,12 @@ function build() {
       lbl.dataset.ci = clIdx;
       lbl.style.background = cl.light;
       lbl.style.color = cl.dark;
-      lbl.textContent = cl.name;
-      lbl.title = cl.name;
+      // 週ごとの表示名：renameSince 以降は改名、hideNameSince 以降は空白（枠だけ残す）
+      let labelName = cl.name;
+      if (cl.renameSince && weekStart >= cl.renameSince)          labelName = cl.renameTo;
+      else if (cl.hideNameSince && weekStart >= cl.hideNameSince) labelName = '';
+      lbl.textContent = labelName;
+      lbl.title = labelName;
 
       week.forEach(d => {
         const td = mkTd(tr,'dcell');
@@ -1205,9 +1209,19 @@ function relOffset(el, container) {
 //  今日の週へスクロール（モバイル用）
 // ================================================================
 function scrollToToday() {
+  // 縦：今週の行をページ上部へ（全デバイス共通）
+  const todayEl = document.querySelector('.today-col');
+  if (todayEl) {
+    const row = todayEl.closest('tr');
+    if (row) {
+      const toolbarH = (document.querySelector('.toolbar')?.offsetHeight || 40) + 8;
+      const y = window.scrollY + row.getBoundingClientRect().top - toolbarH;
+      window.scrollTo({ top: Math.max(0, y), behavior: 'auto' });
+    }
+  }
+  // 横：モバイルのみ今日の列を寄せる
   if (window.innerWidth > 768) return;
   const wrap = document.querySelector('.wrap');
-  const todayEl = document.querySelector('.today-col');
   if (!todayEl || !wrap) return;
   const wrapRect = wrap.getBoundingClientRect();
   const cellRect = todayEl.getBoundingClientRect();
