@@ -774,7 +774,7 @@ const nowStr = () => {
 // 2026-05-24 (日) が起点
 function getWeeks() {
   const first = new Date(2026,4,24); // 5/24 日曜
-  const last  = new Date(2026,8,30); // 9/30
+  const last  = new Date(2026,10,30); // 11/30
   const weeks = [];
   for (let d=new Date(first); d<=last; d.setDate(d.getDate()+7)) {
     const w=[];
