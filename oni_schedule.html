@@ -521,7 +521,7 @@ const CLIENTS = [
   { name:'アシックス',          light:'#fff3e0', semi:'#ffe0b2', dark:'#e65100' },
   { name:'REGAL',             light:'#e8eaf6', semi:'#c5cae9', dark:'#283593' },
   { name:'G-SHOCK',           light:'#e3f2fd', semi:'#c8e5fb', dark:'#1565c0', renameSince:'2026-06-21', renameTo:'マンガート' },
-  { name:'FUJI ROCK',         light:'#fff8e1', semi:'#fdefc0', dark:'#f9a825', renameSince:'2026-06-21', renameTo:'BEAMS SPORTS' },
+  { name:'FUJI ROCK',         light:'#fff8e1', semi:'#fdefc0', dark:'#f9a825', renames:[{ since:'2026-06-21', to:'BEAMS SPORTS' }, { since:'2026-10-04', to:'BEAMS Heart' }] },
   { name:'WIND AND SEA',      light:'#e0f2f1', semi:'#b2dfdb', dark:'#00695c' },
   { name:'ボクシング田中将吾',    light:'#fbe9e7', semi:'#ffccbc', dark:'#bf360c' },
   { name:'1LDK',              light:'#ede7f6', semi:'#d1c4e9', dark:'#4527a0', renameSince:'2026-09-27', renameTo:'G-SHOCK' },
@@ -871,7 +871,9 @@ function build() {
       lbl.style.color = cl.dark;
       // 週ごとの表示名：renameSince 以降は改名、hideNameSince 以降は空白（枠だけ残す）
       let labelName = cl.name;
-      if (cl.renameSince && weekStart >= cl.renameSince)          labelName = cl.renameTo;
+      const rn = (cl.renames || []).filter(r => weekStart >= r.since).pop();
+      if (rn)                                                     labelName = rn.to;
+      else if (cl.renameSince && weekStart >= cl.renameSince)     labelName = cl.renameTo;
       else if (cl.hideNameSince && weekStart >= cl.hideNameSince) labelName = '';
       lbl.textContent = labelName;
       lbl.title = labelName;
